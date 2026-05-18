@@ -1,0 +1,9 @@
+# Compiled binaries
+bin/
+
+# Output files
+out/
+
+# Test artifacts
+pkg/pdfprocessor/testdata/*.pdf
+!pkg/pdfprocessor/testdata/NRI_18.5.pdf
