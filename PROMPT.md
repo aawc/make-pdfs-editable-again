@@ -23,4 +23,8 @@ You can use the following prompt with any advanced LLM (like GPT-4, Claude 3, or
 > 7. Write a `main.go` inside `cmd/make-pdfs-editable-again/main.go` using standard `flag` argument parsing. Organize build binaries inside a `/bin/` directory.
 > 8. Place the core processor code inside `pkg/pdfprocessor/processor.go`. Organize all test inputs and generated test forms under a dedicated `pkg/pdfprocessor/testdata/` directory.
 > 9. Include a script in `samples/` that constructs a basic test PDF containing drawn lines, boxes, and text underscores using `github.com/jung-kurt/gofpdf` inside `pkg/pdfprocessor/testdata/test_form.pdf` so the tool logic can be tested locally without any API key restrictions.
-> 10. Finally, write tests inside `pkg/pdfprocessor/processor_test.go` to automate this check and produce a comprehensive `README.md`.
+> 10. Ensure all indirect Go dependencies are clean and upgraded to resolve known CVEs (e.g. secure `golang.org/x/crypto` >= `v0.51.0` and `golang.org/x/image` >= `v0.40.0` to prevent SSH and TIFF OOM panics).
+> 11. Automate the security and release lifecycles using GitHub Actions:
+>     - Create `.github/workflows/ci.yml` to execute `golang/govulncheck-action` and run all package tests on all pushes/PRs. Set `cache: false` on `setup-go` to prevent tar extraction errors.
+>     - Create `.github/workflows/release.yml` to concurrently build Windows, Linux, and macOS binaries across AMD64/ARM64 targets when a semantic tag (`v*`) is pushed, attaching them to a new GitHub Release. Ensure `cache: false` is configured.
+> 12. Finally, write tests inside `pkg/pdfprocessor/processor_test.go` to automate this check and produce a comprehensive `README.md`.

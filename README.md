@@ -50,3 +50,11 @@ The utility parses the exact graphics state content streams inside the PDF rathe
 ## Limitations
 
 Since PDFs can be composed of varying coordinate systems (CTM transformations), clipped paths, or image rasterizations, this pure content-stream parser relies on the document being constructed using standard vector path lines. Scanned documents without OCR lines or highly complex transformed forms might not yield perfect extraction boundaries.
+
+## CI/CD & Security
+
+The repository is secured and automated using GitHub Actions:
+* **Security Analysis (Go Vulncheck)**: Every push and Pull Request is automatically scanned using Go's official `govulncheck` call-graph static analyzer to guarantee no dependencies with known vulnerabilities are introduced.
+* **Automated Testing**: Unit tests and mock form generators run automatically on the CI pipeline to prevent regressions.
+* **Continuous Delivery Release**: When a semantic version tag (e.g., `v1.0.0`) is pushed to the repository, the release pipeline builds Go binaries for Windows (`.exe`), macOS, and Linux across AMD64 and ARM64 architectures and attaches them to a new GitHub Release automatically.
+
