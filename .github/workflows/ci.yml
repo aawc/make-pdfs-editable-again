@@ -21,6 +21,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
+          cache: false
 
       - name: Run govulncheck
         uses: golang/govulncheck-action@v1
@@ -38,6 +39,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
+          cache: false
 
       - name: Generate Test Forms
         run: go run samples/generate_test_pdfs.go
