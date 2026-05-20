@@ -80,6 +80,13 @@ jobs:
           path: release-binaries/
           merge-multiple: true
 
+      - name: Submit Binaries to VirusTotal
+        uses: virustotal/vt-action@v2
+        with:
+          vt_api_key: ${{ secrets.VIRUSTOTAL_API_KEY }}
+          files_glob: release-binaries/*
+        continue-on-error: true
+
       - name: Generate Release
         uses: softprops/action-gh-release@v2
         with:
