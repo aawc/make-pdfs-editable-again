@@ -2,8 +2,8 @@ name: Build and Release
 
 on:
   push:
-    tags:
-      - 'v*' # Triggers only on tag pushes matching v1.0.0, v0.1.0, etc.
+    branches:
+      - main
 
 permissions:
   contents: write # Required to allow the action to create releases and upload assets
@@ -59,6 +59,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Git Tag
+        id: tag_generator
+        run: |
+          TAG_NAME="v0.0.${{ github.run_number }}"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
 
       - name: Download All Binaries
         uses: actions/download-artifact@v4
@@ -69,7 +81,9 @@ jobs:
       - name: Generate Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.tag_generator.outputs.tag_name }}
           files: release-binaries/*
+          name: Release ${{ steps.tag_generator.outputs.tag_name }}
           draft: false
           prerelease: false
         env:
