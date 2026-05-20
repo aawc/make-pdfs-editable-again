@@ -56,5 +56,5 @@ Since PDFs can be composed of varying coordinate systems (CTM transformations), 
 The repository is secured and automated using GitHub Actions:
 * **Security Analysis (Go Vulncheck)**: Every push and Pull Request is automatically scanned using Go's official `govulncheck` call-graph static analyzer to guarantee no dependencies with known vulnerabilities are introduced.
 * **Automated Testing**: Unit tests and mock form generators run automatically on the CI pipeline to prevent regressions.
-* **Continuous Delivery Release**: When a semantic version tag (e.g., `v1.0.0`) is pushed to the repository, the release pipeline builds Go binaries for Windows (`.exe`), macOS, and Linux across AMD64 and ARM64 architectures and attaches them to a new GitHub Release automatically.
+* **Continuous Delivery Release**: On every code commit pushed to the `main` branch, the release pipeline automatically generates a timestamped semantic tag in the format `vYYYY.MM.run_number` (using bash date commands), compiles production-ready Go binaries for Windows (`.exe`), macOS, and Linux across AMD64 and ARM64 architectures, and attaches them to a new GitHub Release automatically.
 
