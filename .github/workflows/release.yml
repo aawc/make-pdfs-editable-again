@@ -65,7 +65,9 @@ jobs:
       - name: Create Git Tag
         id: tag_generator
         run: |
-          TAG_NAME="v0.0.${{ github.run_number }}"
+          yyyy=$(date +%Y)
+          mm=$(date +%m)
+          TAG_NAME="v$yyyy.$mm.${{ github.run_number }}"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git tag $TAG_NAME
