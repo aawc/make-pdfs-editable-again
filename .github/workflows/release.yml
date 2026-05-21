@@ -81,11 +81,28 @@ jobs:
           merge-multiple: true
 
       - name: Submit Binaries to VirusTotal
+        id: virustotal_scan
         uses: crazy-max/ghaction-virustotal@v5
         with:
           vt_api_key: ${{ secrets.VIRUSTOTAL_API_KEY }}
           files: release-binaries/*
         continue-on-error: true
+
+      - name: Format VirusTotal Reports
+        id: vt_formatter
+        run: |
+          analysis="${{ steps.virustotal_scan.outputs.analysis }}"
+          formatted=""
+          for item in $analysis; do
+            filename=$(echo "$item" | cut -d'=' -f1)
+            url=$(echo "$item" | cut -d'=' -f2)
+            formatted="$formatted"$'\n'"* **$filename**: [VirusTotal Analysis Report]($url)"
+          done
+          
+          # Write multiline output securely
+          echo "vt_reports<<EOF" >> $GITHUB_OUTPUT
+          echo "$formatted" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Generate Release
         uses: softprops/action-gh-release@v2
@@ -95,5 +112,11 @@ jobs:
           name: Release ${{ steps.tag_generator.outputs.tag_name }}
           draft: false
           prerelease: false
+          body: |
+            ### Automated Multi-Platform Release
+            Compiled executable binaries for Windows, macOS, and Linux AMD64/ARM64 architectures.
+            
+            #### Security Verification (VirusTotal Scan Reports)
+            ${{ steps.vt_formatter.outputs.vt_reports }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
