@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Make PDFs Editable Again</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --border: #334155;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        .dropzone {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 40px 20px;
+            cursor: pointer;
+            transition: border-color 0.2s, background-color 0.2s;
+            position: relative;
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--accent);
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+
+        .dropzone input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .dropzone-icon {
+            font-size: 40px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .dropzone-text {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .dropzone-subtext {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        #status {
+            margin-top: 24px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background-color: rgba(0, 0, 0, 0.15);
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: inline-block;
+            word-break: break-all;
+        }
+
+        .btn {
+            display: none;
+            width: 100%;
+            background-color: var(--success);
+            color: #fff;
+            border: none;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 6px;
+            margin-top: 24px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Make PDFs Editable Again</h1>
+        <div class="subtitle">Scan and inject interactive form fields 100% inside your browser.</div>
+
+        <div class="dropzone" id="dropzone">
+            <span class="dropzone-icon">📄</span>
+            <div class="dropzone-text">Drag and drop your static PDF here</div>
+            <div class="dropzone-subtext">or click to select a file from your system</div>
+            <input type="file" id="file-input" accept="application/pdf">
+        </div>
+
+        <div id="status">Initializing WebAssembly engine...</div>
+
+        <button class="btn" id="download-btn">Download Interactive PDF</button>
+    </div>
+
+    <script src="wasm_exec.js"></script>
+    <script>
+        const go = new Go();
+        let processedBytes = null;
+        let originalFileName = "form_editable.pdf";
+
+        const statusEl = document.getElementById("status");
+        const downloadBtn = document.getElementById("download-btn");
+        const dropzone = document.getElementById("dropzone");
+        const fileInput = document.getElementById("file-input");
+
+        // Load and instantiate WebAssembly
+        WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
+            go.run(result.instance);
+            statusEl.innerText = "WASM engine initialized. Ready to scan static forms.";
+        }).catch(err => {
+            statusEl.innerText = "Failed to load WASM engine: " + err;
+            statusEl.style.color = "#ef4444";
+        });
+
+        // Handle Drag and Drop visual states
+        ["dragenter", "dragover"].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => dropzone.classList.add("dragover"), false);
+        });
+        ["dragleave", "drop"].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => dropzone.classList.remove("dragover"), false);
+        });
+
+        // Handle file selections
+        fileInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) processFile(file);
+        });
+
+        async function processFile(file) {
+            downloadBtn.style.display = "none";
+            processedBytes = null;
+            originalFileName = file.name.replace(".pdf", "_editable.pdf");
+
+            statusEl.innerText = `Parsing "${file.name}"...`;
+
+            const arrayBuffer = await file.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+
+            // Trigger the compiled Go in-memory PDF processor
+            // Wait 50ms to allow the DOM loader thread to render
+            setTimeout(() => {
+                try {
+                    const result = makePdfEditable(uint8Array);
+                    if (result.error) {
+                        statusEl.innerText = `Scan failed: ${result.error}`;
+                        statusEl.style.color = "#ef4444";
+                        return;
+                    }
+
+                    processedBytes = result.pdfBytes;
+                    statusEl.innerText = "Successfully injected interactive form fields!";
+                    statusEl.style.color = "#10b981";
+                    downloadBtn.style.display = "block";
+                } catch (err) {
+                    statusEl.innerText = `Runtime error: ${err}`;
+                    statusEl.style.color = "#ef4444";
+                }
+            }, 50);
+        }
+
+        // Handle native file downloading
+        downloadBtn.addEventListener("click", () => {
+            if (!processedBytes) return;
+            const blob = new Blob([processedBytes], { type: "application/pdf" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = originalFileName;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>

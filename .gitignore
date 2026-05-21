@@ -7,3 +7,6 @@ out/
 # Test artifacts
 pkg/pdfprocessor/testdata/*.pdf
 !pkg/pdfprocessor/testdata/NRI_18.5.pdf
+# WASM assets and profile temp dirs
+web/main.wasm
+web/chrome-profile/

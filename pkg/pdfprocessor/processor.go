@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -23,24 +24,42 @@ type Blank struct {
 }
 
 func DetectAndInject(inputPath, outputPath string) error {
-	ctx, err := api.ReadContextFile(inputPath)
+	inBytes, err := os.ReadFile(inputPath)
 	if err != nil {
-		return fmt.Errorf("could not read pdf context: %v", err)
+		return fmt.Errorf("failed to read input file: %v", err)
+	}
+
+	outBytes, err := DetectAndInjectBytes(inBytes)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(outputPath, outBytes, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write output file: %v", err)
+	}
+
+	return nil
+}
+
+func DetectAndInjectBytes(inBytes []byte) ([]byte, error) {
+	rs := bytes.NewReader(inBytes)
+	ctx, err := api.ReadAndValidate(rs, model.NewDefaultConfiguration())
+	if err != nil {
+		return nil, fmt.Errorf("could not read or validate pdf context: %v", err)
 	}
 
 	if err := api.OptimizeContext(ctx); err != nil {
-		return fmt.Errorf("failed to optimize context: %v", err)
+		return nil, fmt.Errorf("failed to optimize context: %v", err)
 	}
 
 	var allBlanks []Blank
 	pageCount := ctx.PageCount
 
-	// Instead of fully parsing CTM and complex graphics state,
-	// we do a basic token scan on the uncompressed content streams.
 	for i := 1; i <= pageCount; i++ {
 		blanks, err := extractBlanksFromPage(ctx, i)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		allBlanks = append(allBlanks, blanks...)
 	}
@@ -48,24 +67,22 @@ func DetectAndInject(inputPath, outputPath string) error {
 	allBlanks = deduplicateBlanks(allBlanks)
 
 	fmt.Printf("Detected %d blanks across %d pages.\n", len(allBlanks), pageCount)
-	for i, b := range allBlanks {
-		fmt.Printf("  Blank %d: Page %d, X: %.2f, Y: %.2f, W: %.2f, H: %.2f, IsRect: %t\n", i+1, b.PageNum, b.X, b.Y, b.Width, b.Height, b.IsRectangle)
-	}
 
 	// Inject Text fields
 	err = addFormFields(ctx, allBlanks)
 	if err != nil {
-		return fmt.Errorf("failed to add form fields: %v", err)
+		return nil, fmt.Errorf("failed to add form fields: %v", err)
 	}
 
-	// Write out the modified context
-	err = api.WriteContextFile(ctx, outputPath)
+	var outBuf bytes.Buffer
+	err = api.WriteContext(ctx, &outBuf)
 	if err != nil {
-		return fmt.Errorf("failed to write output pdf: %v", err)
+		return nil, fmt.Errorf("failed to write output pdf: %v", err)
 	}
 
-	return nil
+	return outBuf.Bytes(), nil
 }
+
 
 func extractBlanksFromPage(ctx *model.Context, pageNum int) ([]Blank, error) {
 	var blanks []Blank

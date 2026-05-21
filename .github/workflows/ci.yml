@@ -46,3 +46,22 @@ jobs:
 
       - name: Execute Tests
         run: go test -v ./...
+
+  wasm_build:
+    name: Verify WASM Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: false
+
+      - name: Build WASM Target
+        env:
+          GOOS: js
+          GOARCH: wasm
+        run: go build -o web/main.wasm cmd/wasm/main.go
