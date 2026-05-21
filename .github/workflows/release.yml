@@ -81,10 +81,10 @@ jobs:
           merge-multiple: true
 
       - name: Submit Binaries to VirusTotal
-        uses: virustotal/vt-action@v2
+        uses: crazy-max/ghaction-virustotal@v5
         with:
           vt_api_key: ${{ secrets.VIRUSTOTAL_API_KEY }}
-          files_glob: release-binaries/*
+          files: release-binaries/*
         continue-on-error: true
 
       - name: Generate Release
