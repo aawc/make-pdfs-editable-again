@@ -67,7 +67,8 @@ jobs:
         run: |
           yyyy=$(date +%Y)
           mm=$(date +%m)
-          TAG_NAME="v$yyyy.$mm.${{ github.run_number }}"
+          nnn=$(printf "%03d" ${{ github.run_number }})
+          TAG_NAME="v$yyyy.$mm.$nnn"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git tag $TAG_NAME
@@ -106,6 +107,22 @@ jobs:
           echo "$formatted" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+      - name: Generate Changelog
+        id: changelog_generator
+        run: |
+          # Fetch previous tag, default to empty if none exists
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            CHANGELOG=$(git log --oneline --pretty=format:"* %s (%h)" -n 20)
+          else
+            CHANGELOG=$(git log --oneline --pretty=format:"* %s (%h)" $PREV_TAG..HEAD)
+          fi
+          
+          # Write multiline output securely
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Generate Release
         uses: softprops/action-gh-release@v2
         with:
@@ -114,12 +131,14 @@ jobs:
           name: Release ${{ steps.tag_generator.outputs.tag_name }}
           draft: false
           prerelease: false
-          generate_release_notes: true
           body: |
             ### Automated Multi-Platform Release
             Compiled executable binaries for Windows, macOS, and Linux AMD64/ARM64 architectures.
             
             #### Security Verification (VirusTotal Scan Reports)
             ${{ steps.vt_formatter.outputs.vt_reports }}
+            
+            #### Detailed Changelog (Commits since last release)
+            ${{ steps.changelog_generator.outputs.changelog }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
