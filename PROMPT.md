@@ -14,11 +14,11 @@ You can use the following prompt with any advanced LLM (like GPT-4, Claude 3, or
 > 3. Create a logic module (e.g., `pkg/pdfprocessor/processor.go`) that parses page uncompressed streams:
 >    - Keep a robust custom tokenizer that extracts strings/arrays preserving brackets `[...]` and parens `(...)`.
 >    - Look for line drawing operators (`m` and `l`) that are horizontal and longer than 30 points.
->    - Look for rectangle drawing operators (`re`) that are typical text box sizes, supporting absolute mapping for negative heights.
+>    - Look for rectangle drawing operators (`re`) that are typical text box sizes (height > 12), supporting absolute mapping for negative heights. The scanner must also detect small checkbox squares where absolute width and height are equal within a 1.5-point tolerance, and both dimensions are between 8 and 20 points.
 >    - Track text position matrix adjustments (`Tm`, `Td`, `TD`) and font sizing (`Tf`).
 >    - Detect consecutive underscore strings (`__________`) inside `Tj` or `TJ` text rendering arrays. Estimate text prefix widths dynamically to offset and position the interactive form overlays exactly over the underscores.
 > 4. Implement a coordinate-based deduplication logic to avoid overlapping form fields.
-> 5. For every detected blank geometry, map these to the `AcroForm` fields array by constructing a new `Annot` type `Widget` dictionary, and inject it as a text field.
+> 5. For every detected blank geometry, map these to the `AcroForm` fields array by constructing a new `Annot` type `Widget` dictionary, and inject it as a text field. If the blank is a checkbox square, it must be mapped as a native PDF Button field (`/FT /Btn`) with default value `/V /Off` and appearance state `/AS /Off` to support interactive checkmarks.
 > 6. Make sure the output is written as a new functional PDF (e.g. `/out/[input]_editable.pdf`).
 > 7. Write a `main.go` inside `cmd/make-pdfs-editable-again/main.go` using standard `flag` argument parsing. Organize build binaries inside a `/bin/` directory.
 > 8. Place the core processor code inside `pkg/pdfprocessor/processor.go`. Organize all test inputs and generated test forms under a dedicated `pkg/pdfprocessor/testdata/` directory.

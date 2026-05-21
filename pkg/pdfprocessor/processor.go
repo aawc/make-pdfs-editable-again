@@ -21,6 +21,7 @@ type Blank struct {
 	Width       float64
 	Height      float64
 	IsRectangle bool
+	IsCheckbox  bool
 }
 
 // TextBox represents a visual text element's bounding area
@@ -173,7 +174,16 @@ func extractBlanksFromPage(ctx *model.Context, pageNum int) ([]Blank, error) {
 					hAbs = -hAbs
 				}
 
-				if wAbs > 30 && wAbs < 600 && hAbs > 12 && hAbs < 400 {
+				isCheckbox := false
+				diffDim := wAbs - hAbs
+				if diffDim < 0 {
+					diffDim = -diffDim
+				}
+				if wAbs >= 8 && wAbs <= 20 && hAbs >= 8 && hAbs <= 20 && diffDim <= 1.5 {
+					isCheckbox = true
+				}
+
+				if (wAbs > 30 && wAbs < 600 && hAbs > 12 && hAbs < 400) || isCheckbox {
 					rectX := x
 					rectY := y
 					if w < 0 {
@@ -190,6 +200,7 @@ func extractBlanksFromPage(ctx *model.Context, pageNum int) ([]Blank, error) {
 						Width:       wAbs,
 						Height:      hAbs,
 						IsRectangle: true,
+						IsCheckbox:  isCheckbox,
 					})
 				}
 			}
@@ -520,12 +531,20 @@ func addFormFields(ctx *model.Context, blanks []Blank) error {
 		fieldDict := types.NewDict()
 		fieldDict.Insert("Type", types.Name("Annot"))
 		fieldDict.Insert("Subtype", types.Name("Widget"))
-		fieldDict.Insert("FT", types.Name("Tx"))
 		// Print flag
 		fieldDict.Insert("F", types.Integer(4))
-		fieldDict.Insert("T", types.StringLiteral(fmt.Sprintf("TextField_%d", fieldCount)))
 		fieldDict.Insert("Rect", rectArray)
-		fieldDict.Insert("DA", types.StringLiteral("/Helv 0 Tf 0 g")) // Set local DA for Chrome compatibility
+
+		if blank.IsCheckbox {
+			fieldDict.Insert("FT", types.Name("Btn"))
+			fieldDict.Insert("T", types.StringLiteral(fmt.Sprintf("CheckboxField_%d", fieldCount)))
+			fieldDict.Insert("V", types.Name("Off"))  // Default: Off (unchecked)
+			fieldDict.Insert("AS", types.Name("Off")) // Default state: Off
+		} else {
+			fieldDict.Insert("FT", types.Name("Tx")) // Text Field
+			fieldDict.Insert("T", types.StringLiteral(fmt.Sprintf("TextField_%d", fieldCount)))
+			fieldDict.Insert("DA", types.StringLiteral("/Helv 0 Tf 0 g")) // Set local DA for Chrome compatibility
+		}
 
 		fieldIndRef, err := ctx.IndRefForNewObject(fieldDict)
 		if err != nil {
