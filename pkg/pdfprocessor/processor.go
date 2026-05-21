@@ -173,7 +173,7 @@ func extractBlanksFromPage(ctx *model.Context, pageNum int) ([]Blank, error) {
 					hAbs = -hAbs
 				}
 
-				if wAbs > 30 && wAbs < 600 && hAbs > 50 && hAbs < 400 {
+				if wAbs > 30 && wAbs < 600 && hAbs > 12 && hAbs < 400 {
 					rectX := x
 					rectY := y
 					if w < 0 {
@@ -425,6 +425,8 @@ func estimateTextWidth(s string, fontSize float64) float64 {
 	for _, r := range s {
 		wFactor := 0.53 // default
 		switch {
+		case r == '_':
+			wFactor = 0.50 // Precise Helvetica underscore factor
 		case r >= 'A' && r <= 'Z' || r == 'm' || r == 'w' || r == '@' || r == '%':
 			wFactor = 0.7
 		case strings.ContainsRune("iltfjrI ():.,-", r):
