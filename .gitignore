@@ -5,8 +5,7 @@ bin/
 out/
 
 # Test artifacts
-pkg/pdfprocessor/testdata/*.pdf
-!pkg/pdfprocessor/testdata/NRI_18.5.pdf
+pkg/pdfprocessor/testdata/*_editable.pdf
 # WASM assets and profile temp dirs
 web/main.wasm
 web/chrome-profile/
