@@ -36,7 +36,7 @@ jobs:
         env:
           GOOS: js
           GOARCH: wasm
-        run: go build -o web/main.wasm cmd/wasm/main.go
+        run: go build -trimpath -ldflags="-s -w" -o web/main.wasm cmd/wasm/main.go
 
       - name: Compress WebAssembly with Gzip
         run: |

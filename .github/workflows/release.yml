@@ -43,7 +43,7 @@ jobs:
           fi
           
           # Build target binary
-          go build -o bin/make-pdfs-editable-again-${{ matrix.goos }}-${{ matrix.goarch }}$EXT cmd/make-pdfs-editable-again/main.go
+          go build -trimpath -ldflags="-s -w" -o bin/make-pdfs-editable-again-${{ matrix.goos }}-${{ matrix.goarch }}$EXT cmd/make-pdfs-editable-again/main.go
 
       - name: Upload Artifacts (Temporary)
         uses: actions/upload-artifact@v4
