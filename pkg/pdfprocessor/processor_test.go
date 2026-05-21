@@ -10,8 +10,8 @@ import (
 )
 
 func TestDetectAndInjectComprehensiveSuite(t *testing.T) {
-	// Loop and scan all 10 distinct test form templates
-	for i := 1; i <= 10; i++ {
+	// Loop and scan all 11 distinct test form templates
+	for i := 1; i <= 11; i++ {
 		inputFile := fmt.Sprintf("testdata/test_form_%d.pdf", i)
 		outputFile := fmt.Sprintf("testdata/test_form_%d_editable.pdf", i)
 

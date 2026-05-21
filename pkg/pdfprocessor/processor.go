@@ -23,6 +23,11 @@ type Blank struct {
 	IsRectangle bool
 }
 
+// TextBox represents a visual text element's bounding area
+type TextBox struct {
+	MinX, MinY, MaxX, MaxY float64
+}
+
 func DetectAndInject(inputPath, outputPath string) error {
 	inBytes, err := os.ReadFile(inputPath)
 	if err != nil {
@@ -86,6 +91,7 @@ func DetectAndInjectBytes(inBytes []byte) ([]byte, error) {
 
 func extractBlanksFromPage(ctx *model.Context, pageNum int) ([]Blank, error) {
 	var blanks []Blank
+	var textBoxes []TextBox
 
 	// Note: in pdfcpu v0.6.x+ to get page content:
 	// Use ctx.PageContent(pageDict, pageObjNr)
@@ -226,13 +232,28 @@ func extractBlanksFromPage(ctx *model.Context, pageNum int) ([]Blank, error) {
 		case "TJ", "Tj":
 			if i >= 1 {
 				arg := string(tokens[i-1])
+				cleanStr := cleanTJString(arg)
+
+				// 1. If it contains alphanumeric characters (non-underscore labels),
+				// save its bounding box to filter out overlapping decorative rectangles.
+				stripped := strings.ReplaceAll(cleanStr, "_", "")
+				stripped = strings.TrimSpace(stripped)
+				if len(stripped) > 0 {
+					w := estimateTextWidth(cleanStr, lastFontSize)
+					textBoxes = append(textBoxes, TextBox{
+						MinX: textX,
+						MinY: textY,
+						MaxX: textX + w,
+						MaxY: textY + lastFontSize,
+					})
+				}
+
 				matches := underscoreRe.FindAllString(arg, -1)
 				totalUnderscores := 0
 				for _, m := range matches {
 					totalUnderscores += len(m)
 				}
 				if totalUnderscores > 5 {
-					cleanStr := cleanTJString(arg)
 					firstUnderscoreIdx := strings.Index(cleanStr, "_")
 					if firstUnderscoreIdx == -1 {
 						firstUnderscoreIdx = 0
@@ -264,7 +285,27 @@ func extractBlanksFromPage(ctx *model.Context, pageNum int) ([]Blank, error) {
 		}
 	}
 
-	return blanks, nil
+	// 2. Filter out any detected rectangles that contain pre-existing text elements
+	var filteredBlanks []Blank
+	for _, b := range blanks {
+		if b.IsRectangle {
+			intersects := false
+			for _, t := range textBoxes {
+				// AABB intersection checks: skip if not overlapping
+				if !(t.MaxX < b.X || t.MinX > b.X+b.Width || t.MaxY < b.Y || t.MinY > b.Y+b.Height) {
+					intersects = true
+					break
+				}
+			}
+			if intersects {
+				// Discard false-positive table boundaries or legal declaration boxes
+				continue
+			}
+		}
+		filteredBlanks = append(filteredBlanks, b)
+	}
+
+	return filteredBlanks, nil
 }
 
 func tokenize(data []byte) []string {

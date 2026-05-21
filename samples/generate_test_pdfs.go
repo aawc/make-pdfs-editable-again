@@ -22,6 +22,7 @@ func main() {
 		createForm8TightLayout,
 		createForm9DecorativeBanners,
 		createForm10MultiPageKYC,
+		createForm11Disclaimers,
 	}
 
 	for i, createForm := range forms {
@@ -299,6 +300,40 @@ func createForm10MultiPageKYC(filename string) error {
 	pdf.Line(150, 280, 400, 280)
 
 	pdf.Text(50, 340, "Date Signed: ___________________")
+
+	return pdf.OutputFileAndClose(filename)
+}
+
+// Form 11: POPULATED TABLE CELLS & DISCLAIMERS (Tests text-box intersection filters)
+func createForm11Disclaimers(filename string) error {
+	pdf := gofpdf.New("P", "pt", "A4", "")
+	pdf.AddPage()
+	pdf.SetFont("Arial", "B", 14)
+	pdf.Text(50, 50, "Form 11: Labeled Tables & Legal Disclaimers")
+
+	// 1. Populated outer table grid (Passport details scenario)
+	// The table has a surrounding boundary box (height > 50) which contains cells and visual text labels!
+	// This should NOT be detected as a blank box.
+	pdf.Rect(50, 100, 500, 80, "D") 
+	pdf.SetFont("Arial", "", 10)
+	pdf.Text(60, 120, "Passport No: ___________________")
+	pdf.Text(300, 120, "Date of Issue: _________________")
+	pdf.Text(60, 155, "Place of Issue: _________________")
+
+	// 2. Legal disclaimer block (FATCA legal declaration scenario)
+	// Surrounding box is height 120 (>50) but contains full paragraphs of legal text!
+	// This should NOT be detected as a blank box.
+	pdf.Rect(50, 220, 500, 120, "D")
+	pdf.SetFont("Arial", "", 9)
+	pdf.Text(60, 240, "FATCA DECLARATION: I hereby declare that the details furnished above are true")
+	pdf.Text(60, 255, "and correct to the best of my knowledge and belief and I undertake to inform you")
+	pdf.Text(60, 270, "of any changes therein, immediately. In case any of the above information is found")
+	pdf.Text(60, 285, "to be false or untrue or misleading, I am aware that I may be held liable for it.")
+
+	// 3. Actual blank box (e.g. Comments Area - which is completely empty of text - should be detected)
+	pdf.SetFont("Arial", "", 11)
+	pdf.Text(50, 370, "Customer Comments (Leave completely blank):")
+	pdf.Rect(50, 385, 500, 100, "D")
 
 	return pdf.OutputFileAndClose(filename)
 }
