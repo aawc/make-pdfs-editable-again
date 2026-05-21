@@ -57,4 +57,6 @@ The repository is secured and automated using GitHub Actions:
 * **Security Analysis (Go Vulncheck)**: Every push and Pull Request is automatically scanned using Go's official `govulncheck` call-graph static analyzer to guarantee no dependencies with known vulnerabilities are introduced.
 * **Automated Testing**: Unit tests and mock form generators run automatically on the CI pipeline to prevent regressions.
 * **Continuous Delivery Release**: On every code commit pushed to the `main` branch, the release pipeline automatically generates a timestamped semantic tag in the format `vYYYY.MM.run_number` (using bash date commands), compiles production-ready Go binaries for Windows (`.exe`), macOS, and Linux across AMD64 and ARM64 architectures, and attaches them to a new GitHub Release automatically.
+* **Static Web UI CD (GitHub Pages)**: Pushes to the `main` branch automatically compile our Go processor into WebAssembly (`main.wasm`) and deploy the responsive single-page static dashboard hosted at `/web/` directly to **GitHub Pages**, enabling serverless client-side fillable PDF scans.
+
 
