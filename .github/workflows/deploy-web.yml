@@ -38,6 +38,11 @@ jobs:
           GOARCH: wasm
         run: go build -o web/main.wasm cmd/wasm/main.go
 
+      - name: Compress WebAssembly with Gzip
+        run: |
+          gzip -9 -f web/main.wasm
+          # This creates web/main.wasm.gz and automatically deletes web/main.wasm!
+
       - name: Copy Go WASM Execution Helper
         run: cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" web/
 

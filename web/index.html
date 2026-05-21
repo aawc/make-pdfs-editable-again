@@ -183,14 +183,27 @@
         const dropzone = document.getElementById("dropzone");
         const fileInput = document.getElementById("file-input");
 
-        // Load and instantiate WebAssembly
-        WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
-            go.run(result.instance);
-            statusEl.innerText = "WASM engine initialized. Ready to scan static forms.";
-        }).catch(err => {
-            statusEl.innerText = "Failed to load WASM engine: " + err;
-            statusEl.style.color = "#ef4444";
-        });
+        // Load and instantiate WebAssembly (using native Gzip decompression stream)
+        async function initWasm() {
+            try {
+                const response = await fetch("main.wasm.gz");
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const ds = new DecompressionStream("gzip");
+                const decompressedStream = response.body.pipeThrough(ds);
+                const decompressedResponse = new Response(decompressedStream, {
+                    headers: { "Content-Type": "application/wasm" }
+                });
+
+                const result = await WebAssembly.instantiateStreaming(decompressedResponse, go.importObject);
+                go.run(result.instance);
+                statusEl.innerText = "WASM engine initialized. Ready to scan static forms.";
+            } catch (err) {
+                statusEl.innerText = "Failed to load WASM engine: " + err;
+                statusEl.style.color = "#ef4444";
+            }
+        }
+        initWasm();
 
         // Handle Drag and Drop visual states
         ["dragenter", "dragover"].forEach(eventName => {
