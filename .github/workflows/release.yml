@@ -91,12 +91,14 @@ jobs:
       - name: Format VirusTotal Reports
         id: vt_formatter
         run: |
-          analysis="${{ steps.virustotal_scan.outputs.analysis }}"
           formatted=""
-          for item in $analysis; do
-            filename=$(echo "$item" | cut -d'=' -f1)
-            url=$(echo "$item" | cut -d'=' -f2)
-            formatted="$formatted"$'\n'"* **$filename**: [VirusTotal Analysis Report]($url)"
+          for filepath in release-binaries/*; do
+            if [ -f "$filepath" ]; then
+              filename=$(basename "$filepath")
+              sha256=$(sha256sum "$filepath" | cut -d' ' -f1)
+              url="https://www.virustotal.com/gui/file/$sha256/detection"
+              formatted="$formatted"$'\n'"* **$filename**: [VirusTotal Permanent Analysis Report]($url)"
+            fi
           done
           
           # Write multiline output securely
@@ -112,6 +114,7 @@ jobs:
           name: Release ${{ steps.tag_generator.outputs.tag_name }}
           draft: false
           prerelease: false
+          generate_release_notes: true
           body: |
             ### Automated Multi-Platform Release
             Compiled executable binaries for Windows, macOS, and Linux AMD64/ARM64 architectures.
